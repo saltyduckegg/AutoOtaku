@@ -175,31 +175,33 @@ class Adbtools:
             "RGBA", (width, height), img_data[12:], "raw", "RGBX", 0, 1
             ).convert("RGBA")
         return img
+    
     def get_uixml_via_stdout(self):
         """
-        通过adb直接获取uiautomator dump的XML字符串内容，不保存到本地
+        获取屏幕UI结构（XML），不保存到本地文件，直接从设备读取并返回 XML 字符串（已清理）
+        :return: XML 字符串内容，或 None
         """
         command = ['shell', 'sh', '-c',
-               "'uiautomator dump /sdcard/ui.xml && cat /sdcard/ui.xml && rm /sdcard/ui.xml'"]
-        try:
-            if self.device_ip == 'localhost':
-                result = subprocess.run(
-                    [self.adb_path, '-s', self.mac] + command,
-                    capture_output=True,
-                    check=True,
-                    text=True
-                )
-            else:
-                result = subprocess.run(
-                    [self.adb_path, '-s', f'{self.device_ip}:{self.port}'] + command,
-                    capture_output=True,
-                    check=True,
-                    text=True
-                )
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing adb command: {e}")
-        return None
+                '"uiautomator dump /sdcard/ui.xml && cat /sdcard/ui.xml && rm /sdcard/ui.xml"']
+        
+        result = self.run_adb_command_bin(command)
+        
+        if result is not None:
+            try:
+                xml_str = result.decode('utf-8', errors='ignore')
+                # 清理前缀信息，只保留从 '<?xml' 开始的部分
+                xml_start = xml_str.find('<?xml')
+                if xml_start != -1:
+                    return xml_str[xml_start:].strip()
+                else:
+                    print("Warning: XML header not found in ADB output.")
+                    return None
+            except UnicodeDecodeError as e:
+                print(f"Decode error: {e}")
+                return None
+        else:
+            return None
+
 
     
     def adb_read_xml(self, path):
