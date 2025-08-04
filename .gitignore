@@ -1,0 +1,4 @@
+data/anno/*
+data/images/*
+data/label/*
+high_level_data/*.png
