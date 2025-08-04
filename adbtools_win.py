@@ -175,6 +175,32 @@ class Adbtools:
             "RGBA", (width, height), img_data[12:], "raw", "RGBX", 0, 1
             ).convert("RGBA")
         return img
+    def get_uixml_via_stdout(self):
+        """
+        通过adb直接获取uiautomator dump的XML字符串内容，不保存到本地
+        """
+        command = ['shell', 'sh', '-c',
+               "'uiautomator dump /sdcard/ui.xml && cat /sdcard/ui.xml && rm /sdcard/ui.xml'"]
+        try:
+            if self.device_ip == 'localhost':
+                result = subprocess.run(
+                    [self.adb_path, '-s', self.mac] + command,
+                    capture_output=True,
+                    check=True,
+                    text=True
+                )
+            else:
+                result = subprocess.run(
+                    [self.adb_path, '-s', f'{self.device_ip}:{self.port}'] + command,
+                    capture_output=True,
+                    check=True,
+                    text=True
+                )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing adb command: {e}")
+        return None
+
     
     def adb_read_xml(self, path):
         xml_data = self.run_adb_command(['shell', f"su  -c 'cat {path}'"])
@@ -190,9 +216,12 @@ class Adbtools:
     def guanbiapp(self,package_name = 'jp.pokemon.pokemontcgp'):
         self.run_adb_command(['shell', f'am force-stop {package_name}'])
 
-    def 删除文件(self,path):
+    def delet_file(self,path):
         self.run_adb_command(['shell', f"su -c 'rm -r  {path}'"])
         #self.device.shell("su -c \'rm -r  path\'")
         #Adbtools(host, port).shell("su -c 'rm -r  /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml'")
-
+        
+    def HelloWorld(self):
+        print("Hello World")
+        return "Hello World"
     
