@@ -56,6 +56,7 @@ def main():
             keys = list(data.keys())
             level = data[keys[0]]
             anno = json.dumps(data[keys[1]], ensure_ascii=False)
+            print(f"封面等级: {level}, 注释: {anno}")
         except (IndexError, KeyError, json.JSONDecodeError) as e:
             print(f"跳过有问题的json，错误：{e}")
             continue  # 跳过本次循环，进入下一个
@@ -68,7 +69,7 @@ def main():
         with open(label_filename, "w", encoding="utf-8") as f:
             f.write(str(level))
         cover.save(png_filename)
-        if level >= 7:
+        if int(level) >= 7:
             height_png_filename = f"high_level_data/{timestamp}.png"
             cover.save(height_png_filename)
             print(f"高危封面已保存: {height_png_filename}")
