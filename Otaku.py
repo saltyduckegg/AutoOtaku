@@ -1,13 +1,14 @@
 import argparse
 from adbtools_win import Adbtools
 import numpy as np
-from OtakuTools import find_video_covers, extract_covers
+from OtakuTools import is_similar_to_4_3
 import time
-from AItools import 鉴黄
+from AItools import 鉴
 import json
 from datetime import datetime
 
 from imgtools import img_crop
+from lxml import etree
 
 
 
@@ -31,27 +32,37 @@ mac = args.mac  # 从命令行传入的MAC地址
 def main():
     adb = Adbtools(adb_path, host, port, mac)
     adb.adb_swipe_raw(500,500,500,1500, 500)
-    time.sleep(2)
+    time.sleep(4)
     try:
-        xml_str=adb.get_uixml_via_stdout()
+        coverdetil_list=[]
+        #xml_str=adb.get_uixml_via_stdout()
         img = adb.adb_screencap_raw()
-        boxes = find_video_covers(xml_str)
+        time.sleep(2)
+        xml_str= adb.get_uixml_via_stdout()
+        root = etree.fromstring(xml_str.encode("utf-8"))
+        for i, child in enumerate(reversed(root.xpath("./node[1]/node[1]/node[1]/node[1]/node[1]/node[1]/node[1]/node[1]/node[3]/node[1]/node[2]/node[1]/node[1]/node[1]/node[1]/node"))):
+            for child_children in child.xpath("./node[1]/node[1]"):
+                if child_children.attrib.get("class") != "android.widget.ImageView":
+                    continue
+                boxdetail=is_similar_to_4_3(child_children.attrib.get("bounds"))
+                if boxdetail[1] == False:
+                    continue
+                print(boxdetail[0])
+                cover_dict={}
+                cover_dict['box'] = boxdetail[0]
+                cover_dict['vidio_class'] = child.attrib.get("content-desc").split(',')[0]
+                cover_dict['vidio_title'] = child.attrib.get("content-desc")
+                cover_dict['cover'] = img_crop(img, boxdetail[0])
+                coverdetil_list.append(cover_dict)
     except :
         print("获取UI XML或截图失败")
         return 0
-    for box in boxes:
-
-        x1, y1, x2, y2 = box
-        width = x2 - x1
-        height = y2 - y1
-        # 如果高度约等于宽度的0.5倍，则跳过
-        if (height - 0.5 * width) < 0:
-            continue  # 跳过这个 box，处理下一个
-        cover = img_crop(img, box)
+    for coverdetil in coverdetil_list:
+        #box = coverdetil['box']
+        cover = coverdetil['cover']
         # 处理提取的封面
-        
         try:
-            json_str =鉴黄(cover)
+            json_str =鉴(cover)
             data = json.loads(json_str)
             keys = list(data.keys())
             level = data[keys[0]]
